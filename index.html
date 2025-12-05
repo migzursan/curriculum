@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miguel Zurbano | Interactive CV</title>
+    <style>
+        :root {
+            --primary: #00f0ff;
+            --secondary: #7c3aed;
+            --bg-dark: #0a0a0a;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --accent: #10b981;
+            --card-bg: rgba(255,255,255,0.03);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Scroll Progress Bar */
+        .progress-bar { position: fixed; top: 0; left: 0; height: 4px; background: linear-gradient(90deg, var(--primary), var(--secondary)); width: 0%; z-index: 1000; transition: width 0.1s; }
+
+        /* Typography */
+        h1 { font-size: 4.5rem; letter-spacing: -2px; line-height: 1.1; margin-bottom: 20px; }
+        h2 { font-size: 3rem; letter-spacing: -1px; margin-bottom: 40px; color: var(--text-main); border-left: 4px solid var(--primary); padding-left: 20px; }
+        h3 { font-size: 1.8rem; color: var(--primary); margin-bottom: 5px; }
+        p { font-size: 1.1rem; color: var(--text-muted); max-width: 700px; }
+        
+        /* Scrollytelling Container */
+        .scrolly-container { position: relative; padding-bottom: 100px; }
+
+        /* Sections General */
+        section { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 100px 10%; position: relative; opacity: 0.1; transition: opacity 0.8s ease, transform 0.8s ease; transform: translateY(30px); }
+        section.active { opacity: 1; transform: translateY(0); }
+
+        /* Hero Section */
+        .hero { opacity: 1; transform: none; display: flex; flex-direction: row; align-items: center; justify-content: space-between; min-height: 100vh; }
+        .hero-text { flex: 1; }
+        .hero h1 { background: linear-gradient(135deg, #fff 0%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-img-container { flex: 0 0 350px; margin-left: 50px; position: relative; }
+        .hero-img { width: 100%; border-radius: 20px; box-shadow: 0 0 40px rgba(0, 240, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.1); transition: transform 0.3s ease; }
+        .hero-img:hover { transform: scale(1.02); box-shadow: 0 0 50px rgba(0, 240, 255, 0.4); }
+
+        /* Timeline Styles */
+        .timeline-wrapper { position: relative; padding-left: 25px; border-left: 2px solid rgba(255, 255, 255, 0.1); }
+        .job-card { margin-bottom: 100px; position: relative; padding-left: 30px; }
+        .job-card::before { content: ''; position: absolute; left: -34px; top: 5px; width: 16px; height: 16px; background: var(--bg-dark); border: 2px solid var(--primary); border-radius: 50%; transition: all 0.3s ease; z-index: 10; }
+        .job-card.active::before { background: var(--primary); box-shadow: 0 0 15px var(--primary); }
+        .job-date { font-family: 'Courier New', monospace; color: var(--secondary); font-weight: bold; font-size: 1rem; margin-bottom: 5px; display: block; }
+        /* Force job titles to white */
+        .job-role { font-size: 1.8rem; font-weight: 700; color: #ffffff !important; margin-bottom: 5px; }
+        .job-company { font-size: 1.2rem; color: var(--primary); margin-bottom: 20px; display: block; }
+
+        /* --- BUBBLE EFFECT (Timeline) --- */
+        .bubble-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
+        .bubble-wrapper { position: relative; display: inline-block; }
+        .bubble { background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(124, 58, 237, 0.1)); border: 1px solid var(--primary); color: var(--primary); padding: 10px 20px; border-radius: 50px; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 0 10px rgba(0, 240, 255, 0.1); user-select: none; text-align: center; white-space: nowrap; }
+        .bubble:hover { transform: scale(1.05); background: var(--primary); color: var(--bg-dark); box-shadow: 0 0 20px rgba(0, 240, 255, 0.4); }
+        .bubble-content { display: none; background: var(--card-bg); border-left: 3px solid var(--accent); padding: 15px; border-radius: 8px; color: var(--text-muted); font-size: 1rem; margin-top: 10px; line-height: 1.5; animation: fadeIn 0.5s ease forwards; max-width: 600px; }
+        .bubble-content strong { color: var(--text-main); display: block; margin-bottom: 5px; }
+        .exploded .bubble { animation: popExplosion 0.4s ease-out forwards; pointer-events: none; }
+        .exploded .bubble-content { display: block; }
+        @keyframes popExplosion { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } 100% { transform: scale(2); opacity: 0; display: none; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- SWAP CARDS (Metrics & Education) --- */
+        .metrics-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 30px; }
+        .metric {
+            background: var(--card-bg); padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);
+            text-align: center; transition: all 0.4s ease; position: relative; min-height: 250px; 
+            display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: default;
+        }
+        .metric:hover { border-color: var(--primary); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3); background: rgba(255,255,255,0.06); }
+        .metric-front, .metric-back { width: 100%; transition: opacity 0.3s ease, transform 0.3s ease; }
+        .metric-back { position: absolute; top: 0; left: 0; height: 100%; padding: 20px; display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(20px); pointer-events: none; }
+        .metric:hover .metric-front { opacity: 0; transform: translateY(-20px); }
+        .metric:hover .metric-back { opacity: 1; transform: translateY(0); }
+        .metric-val { font-size: 3.5rem; font-weight: 700; color: var(--primary); display: block; font-family: 'Courier New', monospace; margin-bottom: 10px; }
+        .metric-desc-text { color: var(--text-main); font-size: 0.95rem; line-height: 1.5; font-weight: 500; }
+
+        .edu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .edu-card {
+            background: var(--card-bg); padding: 25px; border-radius: 10px; border-left: 3px solid var(--secondary);
+            transition: all 0.4s ease; position: relative; min-height: 160px; display: flex; align-items: center; justify-content: flex-start; overflow: hidden; cursor: default;
+        }
+        .edu-card:hover { border-left-color: var(--primary); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3); background: rgba(255,255,255,0.06); }
+        .edu-front, .edu-back { width: 100%; transition: opacity 0.3s ease, transform 0.3s ease; }
+        .edu-back { position: absolute; top: 0; left: 0; height: 100%; padding: 25px; display: flex; align-items: center; opacity: 0; transform: translateY(20px); pointer-events: none; }
+        .edu-card:hover .edu-front { opacity: 0; transform: translateY(-20px); }
+        .edu-card:hover .edu-back { opacity: 1; transform: translateY(0); }
+        .edu-year { font-family: 'Courier New', monospace; color: var(--text-muted); font-size: 0.9rem; }
+        .edu-title { font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin: 5px 0; }
+        .edu-school { color: var(--primary); font-size: 1rem; }
+        .edu-desc { color: var(--text-main); font-size: 1rem; line-height: 1.4; font-weight: 500; }
+
+        /* --- TECH HOLOGRAPHIC CARDS (GRID 4x4) --- */
+        /* Updated Grid to force 4 columns on large screens */
+        .tech-grid { 
+            display: grid; 
+            grid-template-columns: 1fr; /* Mobile First */
+            gap: 20px; 
+            width: 100%; 
+        }
+
+        .tech-card {
+            background: var(--card-bg); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; position: relative; min-height: 350px; overflow: hidden; transition: all 0.4s ease; cursor: default;
+        }
+        .tech-card:hover { border-color: var(--primary); box-shadow: 0 0 30px rgba(0, 240, 255, 0.15); transform: translateY(-5px); }
+        
+        .tech-content-front {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); background: rgba(10, 10, 10, 0.95); z-index: 2;
+        }
+        .tech-content-front h3 { font-size: 1.5rem; color: var(--text-main); margin-bottom: 20px; text-align: center; font-weight: 700; letter-spacing: -0.5px; }
+        
+        .skills-cloud { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+        .skills-cloud span { font-size: 0.8rem; color: var(--primary); border: 1px solid rgba(0, 240, 255, 0.3); padding: 5px 10px; border-radius: 20px; background: rgba(0, 240, 255, 0.05); }
+        
+        .tech-content-back {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 25px; background: linear-gradient(145deg, rgba(20,20,20,1) 0%, rgba(10,10,10,1) 100%); opacity: 0; transform: translateY(20px) scale(0.95); transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); z-index: 1;
+        }
+        .tech-content-back h4 { font-size: 1.1rem; color: var(--primary); margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .tech-detail { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.4; }
+        .tech-detail strong { color: var(--text-main); }
+        
+        .project-btn {
+            display: inline-block; margin-top: 10px; padding: 8px 20px; background: transparent; border: 1px solid var(--primary); color: var(--primary); border-radius: 20px; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: all 0.3s ease; text-align: center;
+        }
+        .project-btn:hover { background: var(--primary); color: var(--bg-dark); box-shadow: 0 0 15px rgba(0, 240, 255, 0.4); }
+        .project-btn.disabled { border-color: var(--text-muted); color: var(--text-muted); cursor: not-allowed; pointer-events: none; }
+
+        .tech-card:hover .tech-content-front { opacity: 0; transform: translateY(-20px) scale(0.95); pointer-events: none; }
+        .tech-card:hover .tech-content-back { opacity: 1; transform: translateY(0) scale(1); z-index: 3; }
+
+        /* Orbs & Main Buttons */
+        .orb { position: fixed; border-radius: 50%; filter: blur(100px); z-index: -1; opacity: 0.25; pointer-events: none; }
+        .orb-1 { width: 500px; height: 500px; background: var(--primary); top: -200px; left: -100px; }
+        .orb-2 { width: 400px; height: 400px; background: var(--secondary); bottom: -100px; right: -100px; }
+        
+        .btn-glow { 
+            display: inline-block; 
+            margin-top: 30px; 
+            padding: 15px 40px; 
+            font-size: 1.1rem; 
+            font-weight: 600; 
+            color: var(--bg-dark); 
+            background: var(--primary); 
+            border: none; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4); 
+            transition: 0.3s; 
+            cursor: pointer;
+        }
+        .btn-glow:hover { box-shadow: 0 0 40px rgba(0, 240, 255, 0.6); transform: scale(1.05); color: black; }
+
+        /* Special fix for the Contact Button to not stretch */
+        #contact .btn-glow {
+            align-self: flex-start;
+        }
+
+        /* Toast Message */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: rgba(20, 20, 20, 0.9);
+            border: 1px solid var(--primary);
+            color: #fff;
+            text-align: center;
+            border-radius: 50px;
+            padding: 16px;
+            position: fixed;
+            z-index: 2000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 1rem;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+            opacity: 0;
+            transition: opacity 0.5s, bottom 0.5s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+        /* Responsive Breakpoints */
+        @media (min-width: 600px) {
+            .tech-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (min-width: 1100px) {
+            .tech-grid { grid-template-columns: repeat(4, 1fr); }
+            section { padding: 100px 10%; }
+        }
+
+        @media (max-width: 900px) {
+            .hero { flex-direction: column-reverse; text-align: left; align-items: flex-start; }
+            .hero-img-container { margin: 0 0 40px 0; width: 100%; max-width: 100%; }
+            h1 { font-size: 3rem; }
+            section { padding: 80px 5%; }
+            .bubble { white-space: normal; text-align: left; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="orb orb-1" id="orb1"></div>
+    <div class="orb orb-2" id="orb2"></div>
+    
+    <div id="toast">Keep sliding down! ⬇️</div>
+
+    <div class="scrolly-container">
+        
+        <section class="hero active">
+            <div class="hero-text">
+                <h3 style="letter-spacing: 3px; font-size: 1rem;">PRODUCT OPS & TRANSFORMATION</h3>
+                <h1>Miguel Zurbano</h1>
+                <p>
+                    Strategic Product Operations and Business Transformation Leader. <br>
+                    I bridge the gap between technical architecture and business value, leveraging 8+ years of experience in AI Product Strategy & Automation.
+                </p>
+                <button class="btn-glow" onclick="showToast()">Know me more</button>
+            </div>
+            <div class="hero-img-container">
+                <img src="1764146248819~3.jpg" alt="Miguel Zurbano" class="hero-img" 
+                     onerror="this.style.display='none'; alert('Image file missing. Place 1764146248819~3.jpg in folder.');">
+            </div>
+        </section>
+
+        <section>
+            <h2>Key Impact Metrics</h2>
+            <p style="margin-bottom: 30px; font-size: 0.9rem; opacity: 0.7;">(Hover to see how it was achieved)</p>
+            <div class="metrics-container">
+                
+                <div class="metric">
+                    <div class="metric-front">
+                        <span class="metric-val">70%</span>
+                        <p>Reduction in operational costs via automated workflows</p>
+                    </div>
+                    <div class="metric-back">
+                        <div class="metric-desc-text">70% occurred after consolidating systems, improving/automating common tasks and processes, and change management.</div>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <div class="metric-front">
+                        <span class="metric-val">96%</span>
+                        <p>Precision rate in AI fraud detection (Acceptance Rate)</p>
+                    </div>
+                    <div class="metric-back">
+                        <div class="metric-desc-text">96% achieved after data analysis, integrating metadata from our database and targeting common fraudulent practices.</div>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <div class="metric-front">
+                        <span class="metric-val">75%</span>
+                        <p>Deflection Rate via Self-Service AI Chatbot</p>
+                    </div>
+                    <div class="metric-back">
+                        <div class="metric-desc-text">75% is a heavy result after cleaning data, training model and connecting APIs to chatbot for common easy-to-solve tasks.</div>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <div class="metric-front">
+                        <span class="metric-val">+6%</span>
+                        <p>Conversion lift through payment method optimization</p>
+                    </div>
+                    <div class="metric-back">
+                        <div class="metric-desc-text">+6% Conversion lift through payment method optimization, checkout improvements and better payment radars.</div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section>
+            <h2>Professional Timeline</h2>
+            <p style="margin-bottom: 20px; font-size: 0.9rem; opacity: 0.7;">(Click the bubbles to reveal details)</p>
+            <div class="timeline-wrapper">
+                
+                <div class="job-card">
+                    <span class="job-date">2023 - Present</span>
+                    <div class="job-role">Director of Product Operations & AI Strategy</div>
+                    <span class="job-company">Vivino | Copenhagen, DK</span>
+                    <div class="bubble-grid">
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">AI & Payment Logic Strategy</div>
+                            <div class="bubble-content"><strong>AI & Payment Logic Strategy</strong>Architected the product logic for a metadata-based fraud detection system. Tuned acceptance thresholds to achieve 96% Precision (Acceptance Rate) with <0.01% dispute rate.</div>
+                        </div>
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">Operational Automation</div>
+                            <div class="bubble-content"><strong>Operational Automation Architecture</strong>Orchestrated the consolidation of Commerce and Operations platforms. Designed automated workflows that reduced operational costs by 70%, demonstrating the scalability of automated systems.</div>
+                        </div>
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">Supply Chain Integration</div>
+                            <div class="bubble-content"><strong>Supply Chain & Salesforce Integration</strong>Led the end-to-end deployment of a new Purchasing & Warehouse Management System within Salesforce. Enabled real-time inventory visibility and automated restocking logic.</div>
+                        </div>
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">Product Growth</div>
+                            <div class="bubble-content"><strong>Product Growth</strong>Led A/B testing frameworks for 8 new payment methods, boosting conversion by 6% and GMV by 4% through optimized user funnels.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="job-card">
+                    <span class="job-date">2022 - 2023</span>
+                    <div class="job-role">Head of Intelligent Process Automation</div>
+                    <span class="job-company">Vivino | Copenhagen, DK</span>
+                    <div class="bubble-grid">
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">Conversational AI</div>
+                            <div class="bubble-content"><strong>Conversational AI Implementation</strong>Launched a self-service AI chatbot solution trained on historical support data. Achieved a 75% Deflection Rate, effectively automating the workload equivalent to ~25 FTEs.</div>
+                        </div>
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">Predictive Risk Modeling</div>
+                            <div class="bubble-content"><strong>Predictive Risk Modeling</strong>Integrated Stripe metadata API with internal risk models to identify and block fraudulent patterns in real-time, increasing GMV by 0.43% YoY.</div>
+                        </div>
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">API Ecosystem Strategy</div>
+                            <div class="bubble-content"><strong>API Ecosystem Strategy</strong>Centralized all contact entry points via API integrations, reducing the overall Issue Rate to 7.9% and improving Time-to-Response by 30%.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="job-card">
+                    <span class="job-date">2018 - 2022</span>
+                    <div class="job-role">Head of Product, Support</div>
+                    <span class="job-company">Vivino | Copenhagen, DK</span>
+                    <div class="bubble-grid">
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">CRM Migration</div>
+                            <div class="bubble-content"><strong>CRM Migration & Data Architecture</strong>Managed the complex product migration to Salesforce. Unified data structures to enable 360-degree customer analytics and personalized marketing campaigns.</div>
+                        </div>
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">UX Optimization</div>
+                            <div class="bubble-content"><strong>UX Optimization</strong>Redesigned the "Help Center" user journey based on behavioral analytics. Reduced UX steps and friction, resulting in a 20% increase in NPS and 70% reduction in technical escalations.</div>
+                        </div>
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">Process Engineering</div>
+                            <div class="bubble-content"><strong>Process Engineering</strong>Implemented data-informed process mapping methodologies that reduced the Issue Rate by 2.1% YOY.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="job-card">
+                    <span class="job-date">2016 - 2018</span>
+                    <div class="job-role">Early Career & Leadership</div>
+                    <span class="job-company">Telus International & ElectryConsulting</span>
+                    <div class="bubble-grid">
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">Training & Leadership (Telus)</div>
+                            <div class="bubble-content"><strong>Training & Leadership</strong>Coached and trained a team of +25 Specialists, establishing best practices for technical excellence.</div>
+                        </div>
+                        <div class="bubble-wrapper" onclick="this.classList.add('exploded')">
+                            <div class="bubble">Optimization (Electry)</div>
+                            <div class="bubble-content"><strong>Optimization & Data Standardization</strong>Increased client system integration success rate by 15% (reaching 99.8% success) through optimizing processes based on performance data.</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section>
+            <h2>Education & Certifications</h2>
+            <p style="margin-bottom: 30px; font-size: 0.9rem; opacity: 0.7;">(Hover over the cards to see the value)</p>
+            <div class="edu-grid">
+                
+                <div class="edu-card">
+                    <div class="edu-front">
+                        <div class="edu-year">2025</div>
+                        <div class="edu-title">MBA - Financial Strategy</div>
+                        <div class="edu-school">European Business School EUDE, ES</div>
+                    </div>
+                    <div class="edu-back">
+                        <div class="edu-desc">Comprehensive preparation in all key company areas: supply chain, commerce, operations, finance, management, and strategy.</div>
+                    </div>
+                </div>
+
+                <div class="edu-card">
+                    <div class="edu-front">
+                        <div class="edu-year">2024</div>
+                        <div class="edu-title">Lean Six Sigma - Black Belt</div>
+                        <div class="edu-school">The Knowledge Academy, UK</div>
+                    </div>
+                    <div class="edu-back">
+                        <div class="edu-desc">Advanced expertise in leading complex process improvement projects and driving data-driven quality control across organizations.</div>
+                    </div>
+                </div>
+
+                <div class="edu-card">
+                    <div class="edu-front">
+                        <div class="edu-year">2023</div>
+                        <div class="edu-title">Lean Six Sigma - Green Belt</div>
+                        <div class="edu-school">The Knowledge Academy, UK</div>
+                    </div>
+                    <div class="edu-back">
+                        <div class="edu-desc">Solid foundation in process optimization, waste reduction methodologies, and continuous improvement frameworks.</div>
+                    </div>
+                </div>
+
+                <div class="edu-card">
+                    <div class="edu-front">
+                        <div class="edu-year">2021</div>
+                        <div class="edu-title">Agile Project Management</div>
+                        <div class="edu-school">SCRUM Advanced, CEINPRO, ES</div>
+                    </div>
+                    <div class="edu-back">
+                        <div class="edu-desc">Proficiency in iterative development and Scrum frameworks to deliver flexible, high-value project outcomes.</div>
+                    </div>
+                </div>
+
+                <div class="edu-card">
+                    <div class="edu-front">
+                        <div class="edu-year">2014</div>
+                        <div class="edu-title">B.S. Environmental Sciences</div>
+                        <div class="edu-school">UNED, ES</div>
+                    </div>
+                    <div class="edu-back">
+                        <div class="edu-desc">Scientific foundation in complex systems analysis, data-driven research methods, and sustainability strategies.</div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section>
+            <h2>Innovation Lab & Projects</h2>
+            <p style="margin-bottom: 40px; font-size: 0.9rem; opacity: 0.7;">(Hover cards to view details & launch)</p>
+            
+            <div class="tech-grid">
+                
+                <div class="tech-card">
+                    <div class="tech-content-front">
+                        <h3 style="font-size: 1.8rem;">Guardian Angel</h3>
+                        <div class="skills-cloud">
+                            <span>HealthTech</span><span>Web App</span><span>UX/UI</span><span>GitHub Pages</span>
+                        </div>
+                    </div>
+                    <div class="tech-content-back">
+                        <h4>Medication Adherence App</h4>
+                        <div class="tech-detail">
+                            <strong>The Problem:</strong> Forgetting medication schedules impacts health outcomes.<br>
+                            <strong>The Solution:</strong> A user-friendly, browser-based interface designed to help users track and remember their medication intake effortlessly.
+                        </div>
+                        <a href="https://migzursan.github.io/guardian-angel/" target="_blank" class="project-btn">Open App</a>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <div class="tech-content-front">
+                        <h3 style="font-size: 1.8rem;">Local Executive AI</h3>
+                        <div class="skills-cloud">
+                            <span>Local Inference</span><span>Privacy First</span><span>Multi-Agent</span><span>Ollama</span>
+                        </div>
+                    </div>
+                    <div class="tech-content-back">
+                        <h4>Secure Local Multi-Agent</h4>
+                        <div class="tech-detail">
+                            <strong>The Problem:</strong> Executives need AI assistance with sensitive data without cloud privacy risks.<br>
+                            <strong>The Solution:</strong> A multi-agent solution running entirely on a local device, ensuring 100% data privacy while delivering executive-level insights.
+                        </div>
+                        <a href="https://docs.google.com/document/d/190ezgQfu-5sfpH8CGOZ9ERvAl3IKFaJS3LBtjA5KSUk/edit?tab=t.0" target="_blank" class="project-btn">Read Case Study</a>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <div class="tech-content-front">
+                        <h3 style="font-size: 1.8rem;">Team Orchestrator</h3>
+                        <div class="skills-cloud">
+                            <span>Agentic Workflow</span><span>Strategy</span><span>LangGraph</span><span>Automation</span>
+                        </div>
+                    </div>
+                    <div class="tech-content-back">
+                        <h4>Virtual Executive Team</h4>
+                        <div class="tech-detail">
+                            <strong>The Build:</strong> An advanced multi-agent architecture where specialized agents (Finance, Ops, Strategy) collaborate to solve complex business problems, mimicking a real-world C-Suite.
+                        </div>
+                        <a href="https://docs.google.com/document/d/1rfFoj-hxin0eBpPcMWo2gufDkP_ov_Q3Ejtq-mTSSwA/edit?tab=t.0" target="_blank" class="project-btn">View Architecture</a>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <div class="tech-content-front">
+                        <h3 style="font-size: 1.8rem;">Geo-AI Explorer</h3>
+                        <div class="skills-cloud">
+                            <span>Geolocation</span><span>Real-time Data</span><span>AI Integration</span><span>Mapping API</span>
+                        </div>
+                    </div>
+                    <div class="tech-content-back">
+                        <h4>Location Intelligence App</h4>
+                        <div class="tech-detail">
+                            <strong>In Development:</strong> An upcoming web application combining real-time geolocation data with generative AI to provide context-aware insights for travelers and field operations.
+                        </div>
+                        <a href="#" class="project-btn disabled">Coming Soon</a>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <div class="tech-content-front">
+                        <h3 style="font-size: 1.8rem;">Smart Fraud Defense</h3>
+                        <div class="skills-cloud">
+                            <span>Python</span><span>SQL</span><span>Anomaly Detection</span><span>Risk Logic</span>
+                        </div>
+                    </div>
+                    <div class="tech-content-back">
+                        <h4>Metadata-Based Detection</h4>
+                        <div class="tech-detail">
+                            <strong>Impact:</strong> Achieved 96% Precision with <0.01% dispute rate.<br>
+                            <strong>The Build:</strong> Architected deterministic logic tuning acceptance thresholds to identify fraudulent patterns without blocking legitimate high-value users.
+                        </div>
+                        <a href="mailto:migzursan@gmail.com?subject=Question%20about%20Smart%20Fraud%20Defense" class="project-btn">Ask for Details</a>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <div class="tech-content-front">
+                        <h3 style="font-size: 1.8rem;">CX AI Automator</h3>
+                        <div class="skills-cloud">
+                            <span>NLP</span><span>Historical Data</span><span>API Integration</span><span>Automation</span>
+                        </div>
+                    </div>
+                    <div class="tech-content-back">
+                        <h4>Self-Service Support Bot</h4>
+                        <div class="tech-detail">
+                            <strong>Impact:</strong> 75% Deflection Rate (~25 FTEs workload).<br>
+                            <strong>The Build:</strong> Launched an AI solution trained on historical support data to handle repetitive queries, freeing up human agents for complex issues.
+                        </div>
+                        <a href="mailto:migzursan@gmail.com?subject=Question%20about%20CX%20AI%20Automator" class="project-btn">Ask for Details</a>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <div class="tech-content-front">
+                        <h3 style="font-size: 1.8rem;">Supply Chain Nexus</h3>
+                        <div class="skills-cloud">
+                            <span>Salesforce</span><span>WMS</span><span>Real-time Sync</span><span>ERP</span>
+                        </div>
+                    </div>
+                    <div class="tech-content-back">
+                        <h4>End-to-End Inventory System</h4>
+                        <div class="tech-detail">
+                            <strong>Impact:</strong> Real-time inventory visibility.<br>
+                            <strong>The Build:</strong> Integrated the physical supply journey with Finance modules, enabling automated restocking logic and bridging the gap between operations and books.
+                        </div>
+                        <a href="mailto:migzursan@gmail.com?subject=Question%20about%20Supply%20Chain%20Nexus" class="project-btn">Ask for Details</a>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <div class="tech-content-front">
+                        <h3 style="font-size: 1.8rem;">Ops Efficiency Engine</h3>
+                        <div class="skills-cloud">
+                            <span>Workflow Automation</span><span>Cost Reduction</span><span>Scalability</span><span>API</span>
+                        </div>
+                    </div>
+                    <div class="tech-content-back">
+                        <h4>Platform Consolidation</h4>
+                        <div class="tech-detail">
+                            <strong>Impact:</strong> Reduced operational costs by 70%.<br>
+                            <strong>The Build:</strong> Orchestrated the consolidation of fragmented Commerce and Operations platforms into a unified, automated ecosystem.
+                        </div>
+                        <a href="mailto:migzursan@gmail.com?subject=Question%20about%20Ops%20Efficiency%20Engine" class="project-btn">Ask for Details</a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="contact">
+            <h2>Let's Build Something</h2>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <p>Available for strategic product operations and AI transformation projects.</p>
+                <div><strong style="color: var(--primary);">Phone:</strong> <span style="color:white;">+45 91 93 10 92</span></div>
+                <div><strong style="color: var(--primary);">Location:</strong> <span style="color:white;">Copenhagen, Denmark</span></div>
+            </div>
+            <a href="mailto:migzursan@gmail.com" class="btn-glow" style="margin-top: 30px;">Email Me</a>
+        </section>
+
+    </div>
+
+    <script>
+        // Scroll Logic
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById("progressBar").style.width = scrolled + "%";
+            document.getElementById("orb1").style.top = -(winScroll * 0.2) - 200 + "px";
+            document.getElementById("orb2").style.bottom = -(winScroll * 0.1) - 100 + "px";
+        });
+
+        // Intersection Observer (Sections)
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('active');
+            });
+        }, { threshold: 0.2 });
+        document.querySelectorAll('section').forEach(section => observer.observe(section));
+
+        // Intersection Observer (Timeline Line)
+        const jobObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('active');
+                else entry.target.classList.remove('active');
+            });
+        }, { threshold: 0.6 });
+        document.querySelectorAll('.job-card').forEach(card => jobObserver.observe(card));
+
+        // Toast Logic
+        function showToast() {
+            var x = document.getElementById("toast");
+            x.className = "show";
+            setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+        }
+    </script>
+</body>
+</html>
